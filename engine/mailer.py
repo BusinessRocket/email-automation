@@ -11,6 +11,8 @@ from .render import Rendered, unsubscribe_href
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 465
 DELAY_SECONDS = 1.0  # pause between sends to stay under Gmail rate limits
+CONNECT_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 5.0  # wait 5s, then 10s, between login attempts
 
 
 class NotConfigured(Exception):
@@ -43,8 +45,18 @@ class Mailer:
             self.smtp = None
 
     def _connect(self) -> None:
-        self.smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30)
-        self.smtp.login(self.biz.gmail_address, self.biz.gmail_password)
+        # Gmail sometimes drops a connection during login for no lasting reason.
+        # Retry those; a wrong password (SMTPAuthenticationError) fails at once.
+        for attempt in range(1, CONNECT_ATTEMPTS + 1):
+            try:
+                self.smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30)
+                self.smtp.login(self.biz.gmail_address, self.biz.gmail_password)
+                return
+            except (smtplib.SMTPServerDisconnected, ConnectionError, TimeoutError):
+                self.__exit__()
+                if attempt == CONNECT_ATTEMPTS:
+                    raise
+                time.sleep(RETRY_BACKOFF_SECONDS * attempt)
 
     def build(self, to: str, r: Rendered) -> EmailMessage:
         sender = self.biz.gmail_address or "not-configured@example.invalid"
