@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Activity{% endblock %}
+{% block body %}
+<h1>Activity</h1>
+<div class="row" style="margin-bottom:12px">
+  <a class="btn" href="{{ url_for('activity') }}" {% if not current %}style="font-weight:700"{% endif %}>All</a>
+  {% for b in businesses.values() %}<a class="btn" href="{{ url_for('activity', business=b.key) }}" {% if current == b.key %}style="font-weight:700"{% endif %}>{{ b.name }}</a>{% endfor %}
+</div>
+<div class="tablewrap"><table>
+<tr><th>When (UTC)</th><th>Business</th><th>To</th><th>Subject</th><th>Source</th><th>Status</th></tr>
+{% for r in rows %}
+<tr><td class="small">{{ r.sent_at }}</td><td>{{ businesses[r.business].name if r.business in businesses else r.business }}</td>
+<td>{{ r.email }}</td><td>{{ r.subject }}</td>
+<td class="small">{% if r.campaign_id %}<a href="{{ url_for('campaign', key=r.business, cid=r.campaign_id) }}">campaign</a>{% elif r.step_position %}sequence step {{ r.step_position }}{% endif %}</td>
+<td><span class="pill {{ r.status }}">{{ r.status }}</span>{% if r.error %}<div class="small" style="color:var(--bad)">{{ r.error }}</div>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">Nothing sent yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

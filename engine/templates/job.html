@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block body %}
+{% if not job.done %}<meta http-equiv="refresh" content="2">{% endif %}
+<h1>{{ job.title }}</h1>
+<p>{% if job.done %}<span class="pill ok">finished</span>{% else %}<span class="pill active">running</span> <span class="muted small">This page refreshes itself.</span>{% endif %}</p>
+<pre class="log">{% for line in job.lines %}{{ line }}
+{% else %}Starting...{% endfor %}</pre>
+<p><a href="{{ url_for('overview') }}">Overview</a> · <a href="{{ url_for('activity') }}">Activity log</a></p>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Campaigns · {{ biz.name }}{% endblock %}
+{% block body %}
+<h1>{{ biz.name }} campaigns</h1>
+<form class="card" method="post">
+  <strong>New campaign</strong>
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <div class="row" style="margin-top:8px">
+    <input name="name" placeholder="Campaign name, e.g. November promo" required>
+    <select name="template_id" required>{% for t in tpls %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select>
+    <input name="tag" placeholder="Only this tag (blank = everyone)">
+    <button class="primary">Create</button>
+  </div>
+  <p class="small muted" style="margin:6px 0 0">Creating a campaign doesn't send anything. You can check the recipients and do a dry run first.</p>
+</form>
+<div class="tablewrap"><table>
+<tr><th>Campaign</th><th>Template</th><th>Audience</th><th>Status</th><th>Sent</th><th>Failed</th><th>Created (UTC)</th></tr>
+{% for r in rows %}
+<tr><td><a href="{{ url_for('campaign', key=biz.key, cid=r.id) }}">{{ r.name }}</a></td><td>{{ r.template_name }}</td>
+<td>{% if r.tag %}<span class="tag">{{ r.tag }}</span>{% else %}everyone{% endif %}</td>
+<td><span class="pill {{ r.status }}">{{ r.status }}</span></td><td>{{ r.sent }}</td><td>{{ r.failed }}</td><td class="small muted">{{ r.created_at }}</td></tr>
+{% else %}<tr><td colspan="7" class="muted">No campaigns yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

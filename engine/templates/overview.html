@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Overview</h1>
+<div class="grid">
+{% for key, b in businesses.items() %}{% set s = stats[key] %}
+<div class="card" style="border-top:4px solid {{ b.brand_color }}">
+  <div class="row"><strong style="font-size:17px">{{ b.name }}</strong>
+    {% if b.configured %}<span class="pill ok">sending as {{ b.gmail_address }}</span>
+    {% else %}<span class="pill failed">Gmail not set up</span>{% endif %}</div>
+  {% if not b.configured %}<div class="warn">Add <code>{{ b.env_prefix }}_GMAIL_ADDRESS</code> and <code>{{ b.env_prefix }}_GMAIL_APP_PASSWORD</code> to <code>.env</code>, then restart the dashboard.</div>{% endif %}
+  {% if b.profile_gaps %}<div class="warn">Fill in {{ b.profile_gaps|join(', ') }} for this business in <code>businesses.json</code>. Buttons with an empty link are left out of emails{% if 'address' in b.profile_gaps %}, and anti-spam law expects your business address in the footer{% endif %}.</div>{% endif %}
+  <div class="stats">
+    <div class="stat"><b>{{ s.subscribed }}</b><span>subscribed</span></div>
+    <div class="stat"><b>{{ s.unsubscribed }}</b><span>unsubscribed</span></div>
+    <div class="stat"><b>{{ s.bounced }}</b><span>bounced</span></div>
+    <div class="stat"><b>{{ s.sent_24h }} / {{ b.daily_limit }}</b><span>sent in last 24h</span></div>
+    <div class="stat"><b>{{ s.sent_30d }}</b><span>sent, 30 days</span></div>
+    <div class="stat"><b {% if s.failed_30d %}style="color:var(--bad)"{% endif %}>{{ s.failed_30d }}</b><span>failed, 30 days</span></div>
+    <div class="stat"><b>{{ s.active_enrollments }}</b><span>in sequences</span></div>
+    <div class="stat"><b>{{ s.due_now }}</b><span>sequence emails due</span></div>
+  </div>
+  <div class="row small">
+    <a href="{{ url_for('contacts', key=key) }}">Contacts</a> ·
+    <a href="{{ url_for('campaigns', key=key) }}">Campaigns</a> ·
+    <a href="{{ url_for('sequences', key=key) }}">Sequences</a>
+  </div>
+</div>
+{% endfor %}
+</div>
+<div class="card">
+  <strong>Daily run</strong>
+  <p class="muted small">Sequences send when the daily task runs (<code>daily.bat</code>). You can also run them now. A dry run shows what would be sent and changes nothing.</p>
+  <div class="row">
+    <form class="inline" method="post" action="{{ url_for('run_sequences') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="dry"><button>Run sequences (dry run)</button></form>
+    <form class="inline" method="post" action="{{ url_for('run_sequences') }}" onsubmit="return confirm('Send all sequence emails that are due now, from both businesses?')"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="live"><button class="primary">Run sequences (send)</button></form>
+    <form class="inline" method="post" action="{{ url_for('run_sync') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button>Check inboxes for unsubscribes</button></form>
+  </div>
+</div>
+{% endblock %}

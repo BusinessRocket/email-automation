@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ row.name }} · {{ biz.name }}{% endblock %}
+{% block body %}
+<p><a href="{{ url_for('campaigns', key=biz.key) }}">← Campaigns</a></p>
+<h1>{{ row.name }} <span class="pill {{ row.status }}">{{ row.status }}</span></h1>
+<div class="grid">
+<div class="card">
+  <p><b>Template:</b> <a href="{{ url_for('template_edit', key=biz.key, tid=row.template_id) }}">{{ row.template_name }}</a><br>
+  <b>Audience:</b> {% if row.tag %}subscribed contacts tagged <span class="tag">{{ row.tag }}</span>{% else %}every subscribed contact{% endif %}<br>
+  <b>Still to send:</b> {{ pending|length }}<br>
+  <b>Daily allowance left:</b> {{ remaining_today }} of {{ biz.daily_limit }}</p>
+  {% if pending|length > remaining_today %}<div class="warn">There are more recipients than today's allowance. The first {{ remaining_today }} go now; send again tomorrow to continue. Nobody gets it twice.</div>{% endif %}
+  {% if not biz.configured %}<div class="warn">Gmail isn't set up for {{ biz.name }} yet, so only dry runs work.</div>{% endif %}
+  <div class="row">
+    <form class="inline" method="post" action="{{ url_for('campaign_send', key=biz.key, cid=row.id) }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="dry"><button>Dry run</button></form>
+    {% if pending %}<form class="inline" method="post" action="{{ url_for('campaign_send', key=biz.key, cid=row.id) }}" onsubmit="return confirm('Send this campaign to {{ [pending|length, remaining_today]|min }} contact(s) from {{ biz.gmail_address or biz.name }}?')"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="live"><button class="primary">Send now</button></form>{% endif %}
+  </div>
+</div>
+<div class="card"><iframe class="preview" style="height:420px" src="{{ url_for('template_preview', key=biz.key, tid=row.template_id) }}"></iframe></div>
+</div>
+<h2>Still to send ({{ pending|length }})</h2>
+<div class="tablewrap"><table><tr><th>Email</th><th>Name</th><th>Tags</th></tr>
+{% for c in pending[:100] %}<tr><td>{{ c.email }}</td><td>{{ c.name }}</td><td>{% for t in tag_list(c.tags) %}<span class="tag">{{ t }}</span>{% endfor %}</td></tr>
+{% else %}<tr><td colspan="3" class="muted">Nobody left to send to.</td></tr>{% endfor %}</table></div>
+{% if pending|length > 100 %}<p class="small muted">and {{ pending|length - 100 }} more.</p>{% endif %}
+<h2>Send log</h2>
+<div class="tablewrap"><table><tr><th>When (UTC)</th><th>To</th><th>Status</th></tr>
+{% for s in sends %}<tr><td class="small">{{ s.sent_at }}</td><td>{{ s.email }}</td><td><span class="pill {{ s.status }}">{{ s.status }}</span> <span class="small" style="color:var(--bad)">{{ s.error }}</span></td></tr>
+{% else %}<tr><td colspan="3" class="muted">Not sent yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}

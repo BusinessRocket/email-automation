@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Sequences · {{ biz.name }}{% endblock %}
+{% block body %}
+<h1>{{ biz.name }} sequences</h1>
+<p class="muted">A sequence starts when a contact gets its trigger tag, then sends each step after the set number of days. It stops when the contact unsubscribes, bounces, or gets an exit tag.</p>
+<div class="tablewrap"><table>
+<tr><th>Sequence</th><th>Trigger tag</th><th>Exit tags</th><th>Steps</th><th>In progress</th><th>Completed</th><th>Status</th></tr>
+{% for r in rows %}
+<tr><td><a href="{{ url_for('sequence', key=biz.key, sid=r.id) }}">{{ r.name }}</a></td>
+<td><span class="tag">{{ r.trigger_tag }}</span></td><td>{% for t in tag_list(r.exit_tags) %}<span class="tag">{{ t }}</span>{% endfor %}</td>
+<td>{{ r.steps }}</td><td>{{ r.active_n }}</td><td>{{ r.completed_n }}</td>
+<td>{% if r.active %}<span class="pill ok">on</span>{% else %}<span class="pill draft">paused</span>{% endif %}</td></tr>
+{% endfor %}
+</table></div>
+<form class="card" method="post" style="margin-top:16px">
+  <strong>New sequence</strong>
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <div class="row" style="margin-top:8px">
+    <input name="name" placeholder="Name" required><input name="trigger_tag" placeholder="Trigger tag" required>
+    <input name="exit_tags" placeholder="Exit tags (optional)"><button class="primary">Create</button>
+  </div>
+</form>
+{% endblock %}

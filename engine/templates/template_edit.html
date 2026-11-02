@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ row.name if row else 'New template' }} · {{ biz.name }}{% endblock %}
+{% block body %}
+<p><a href="{{ url_for('templates', key=biz.key) }}">← Templates</a></p>
+<h1>{{ row.name if row and row.id else 'New template' }}</h1>
+<div class="grid">
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <div class="field"><label>Name (only you see this)</label><input name="name" value="{{ row.name if row }}" required></div>
+  <div class="field"><label>Subject</label><input name="subject" value="{{ row.subject if row }}" required></div>
+  <div class="field"><label>Body</label><textarea name="body" required>{{ row.body if row }}</textarea></div>
+  <p class="small muted">Placeholders: {first_name} {name} {suburb} {business_name} {phone} {phone_tel} {website} {booking_url} {review_url}<br>
+  Leave a blank line between paragraphs. <code>**bold**</code> for bold. <code>[[Button text|https://link]]</code> for a button. Buttons with an empty link are left out.<br>
+  The branded header, your business details and the unsubscribe line are added automatically.</p>
+  <button class="primary">Save</button>
+</form>
+<div>
+  {% if preview %}
+  {% if preview.unknown %}<div class="warn">Unknown placeholder{{ 's' if preview.unknown|length > 1 }}: {% for u in preview.unknown %}{{ '{' ~ u ~ '}' }} {% endfor %}. These come out blank.</div>{% endif %}
+  <div class="card small"><b>Subject:</b> {{ preview.subject }}<br><span class="muted">The preview uses a sample contact, Alex Sample.</span></div>
+  {% if row.id %}
+  <iframe class="preview" src="{{ url_for('template_preview', key=biz.key, tid=row.id) }}"></iframe>
+  <form class="card row" method="post" action="{{ url_for('template_test', key=biz.key, tid=row.id) }}" style="margin-top:12px">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <span class="small">Send a test of the saved version to</span><input name="to" type="email" placeholder="you@example.com" required><button>Send test</button>
+  </form>
+  {% endif %}
+  {% else %}<div class="card muted">Save the template to see a preview.</div>{% endif %}
+</div>
+</div>
+{% endblock %}

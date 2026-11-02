@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Contacts · {{ biz.name }}{% endblock %}
+{% block body %}
+<h1>{{ biz.name }} contacts <span class="muted small">({{ total }} total)</span></h1>
+<div class="grid">
+  <form class="card" method="post" action="{{ url_for('add_contact', key=biz.key) }}">
+    <strong>Add a contact</strong>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="row" style="margin-top:8px">
+      <input name="email" type="email" placeholder="Email" required>
+      <input name="name" placeholder="Name">
+      <input name="phone" placeholder="Phone">
+      <input name="suburb" placeholder="Suburb">
+      <input name="tags" placeholder="Tags, e.g. quote">
+      <button class="primary">Add</button>
+    </div>
+  </form>
+  <form class="card" method="post" enctype="multipart/form-data" action="{{ url_for('import_contacts', key=biz.key) }}">
+    <strong>Import a CSV</strong>
+    <p class="small muted" style="margin:4px 0 8px">Needs an email column. Name, first/last name, phone or mobile, suburb or city, and tags columns are picked up too. Existing contacts are merged, and unsubscribed people stay unsubscribed.</p>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="row"><input type="file" name="file" accept=".csv,text/csv" required>
+      <input name="tags" placeholder="Tag everyone, e.g. past-customer"><button class="primary">Import</button></div>
+  </form>
+</div>
+<div class="warn">Tags start sequences. {% if biz.key == 'tiling' %}<b>quote</b> starts the quote follow-ups (stopped by <b>won</b> or <b>completed</b>), and <b>completed</b> starts the review request and care tips.{% else %}<b>lead</b> starts the welcome emails (stopped by <b>customer</b>), and <b>customer</b> starts the review request and rebooking reminder.{% endif %} When you import an old list, tag it with something like <b>past-customer</b> so it doesn't trigger these.</div>
+
+<form class="row" method="get" style="margin:14px 0">
+  <input name="q" value="{{ q }}" placeholder="Search email, name, suburb">
+  <select name="tag"><option value="">Any tag</option>{% for t in all_tags %}<option {% if t == tag %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <select name="status"><option value="">Any status</option>{% for s in ['subscribed','unsubscribed','bounced'] %}<option {% if s == status %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+  <button>Filter</button>
+</form>
+<div class="tablewrap"><table>
+<tr><th>Email</th><th>Name</th><th>Phone</th><th>Suburb</th><th>Tags</th><th>Status</th><th></th></tr>
+{% for r in rows %}
+<tr>
+  <td>{{ r.email }}</td><td>{{ r.name }}</td><td>{{ r.phone }}</td><td>{{ r.suburb }}</td>
+  <td><form class="row" method="post" action="{{ url_for('update_contact', key=biz.key, cid=r.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="tags">
+    <input name="tags" value="{{ tag_list(r.tags)|join(', ') }}" size="18"><button class="small">Save</button></form></td>
+  <td><span class="pill {{ r.status }}">{{ r.status }}</span></td>
+  <td><form method="post" action="{{ url_for('update_contact', key=biz.key, cid=r.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    {% if r.status == 'subscribed' %}<input type="hidden" name="action" value="unsubscribe"><button class="small">Unsubscribe</button>
+    {% else %}<input type="hidden" name="action" value="resubscribe"><button class="small" onclick="return confirm('Only resubscribe someone who has asked to get emails again. Continue?')">Resubscribe</button>{% endif %}
+  </form></td>
+</tr>
+{% else %}<tr><td colspan="7" class="muted">No contacts yet. Add one or import a CSV above.</td></tr>{% endfor %}
+</table></div>
+{% if rows|length == 500 %}<p class="small muted">Showing the newest 500. Use the filters to narrow it down.</p>{% endif %}
+{% endblock %}

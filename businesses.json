@@ -1,0 +1,28 @@
+[
+  {
+    "key": "tiling",
+    "name": "Capital Tile Studio",
+    "from_name": "Capital Tile Studio",
+    "brand_color": "#1f4e79",
+    "tagline": "Tiling for bathrooms, kitchens and floors",
+    "phone": "",
+    "website": "",
+    "address": "",
+    "review_url": "",
+    "booking_url": "",
+    "daily_limit": 400
+  },
+  {
+    "key": "ecoshine",
+    "name": "EcoShine Cleaning",
+    "from_name": "EcoShine Cleaning",
+    "brand_color": "#2e7d4f",
+    "tagline": "Eco-friendly home cleaning",
+    "phone": "",
+    "website": "",
+    "address": "",
+    "review_url": "",
+    "booking_url": "",
+    "daily_limit": 400
+  }
+]

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Marketing engine{% endblock %}</title>
+<style>
+:root { --bg:#f6f6f4; --card:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e3e3de;
+        --ok:#1f7a45; --bad:#b3261e; --warn:#8a5a00; --accent:{{ biz.brand_color if biz else '#333' }}; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+a { color:var(--accent); }
+header.top { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; padding:12px 20px; background:#1d1d1b; }
+header.top a { color:#ddd; text-decoration:none; padding:4px 8px; border-radius:6px; }
+header.top a.brand { color:#fff; font-weight:700; margin-right:auto; }
+header.top a.on, header.top a:hover { background:#3a3a37; color:#fff; }
+header.top .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
+nav.sub { display:flex; gap:4px; padding:0 20px; background:var(--card); border-bottom:1px solid var(--line); overflow-x:auto; }
+nav.sub a { padding:10px 12px; text-decoration:none; color:var(--muted); border-bottom:3px solid transparent; white-space:nowrap; }
+nav.sub a.on { color:var(--ink); border-color:var(--accent); font-weight:600; }
+main { max-width:1150px; margin:0 auto; padding:20px; }
+h1 { font-size:22px; margin:4px 0 16px; } h2 { font-size:17px; margin:24px 0 10px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:16px; }
+.grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0; }
+.stat b { display:block; font-size:22px; } .stat span { color:var(--muted); font-size:13px; }
+table { width:100%; border-collapse:collapse; background:var(--card); }
+th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; }
+.tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+.tablewrap table tr:last-child td { border-bottom:0; }
+input, select, textarea { font:inherit; padding:7px 9px; border:1px solid #cfcfc9; border-radius:6px; background:#fff; color:var(--ink); max-width:100%; }
+textarea { width:100%; min-height:300px; font-family:ui-monospace,Consolas,monospace; font-size:14px; }
+button, .btn { font:inherit; padding:7px 14px; border-radius:6px; border:1px solid #cfcfc9; background:#fff; color:var(--ink); cursor:pointer; text-decoration:none; display:inline-block; }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+button.small { padding:3px 9px; font-size:13px; }
+form.inline { display:inline; }
+.row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.field { display:flex; flex-direction:column; gap:3px; margin-bottom:10px; }
+.field label { font-size:13px; color:var(--muted); }
+.muted { color:var(--muted); } .small { font-size:13px; }
+.tag { display:inline-block; background:#eeeee9; border-radius:10px; padding:0 8px; font-size:12px; margin:1px; }
+.pill { display:inline-block; border-radius:10px; padding:0 8px; font-size:12px; font-weight:600; }
+.pill.subscribed, .pill.sent, .pill.completed, .pill.ok { background:#e2f3e8; color:var(--ok); }
+.pill.unsubscribed, .pill.stopped, .pill.draft { background:#eeeee9; color:var(--muted); }
+.pill.bounced, .pill.failed { background:#fbe4e2; color:var(--bad); }
+.pill.active, .pill.sending, .pill.partial { background:#fff1d6; color:var(--warn); }
+.flash { padding:10px 14px; border-radius:8px; margin-bottom:12px; }
+.flash.ok { background:#e2f3e8; color:var(--ok); } .flash.error { background:#fbe4e2; color:var(--bad); }
+.warn { background:#fff6e0; border:1px solid #f1d58e; color:#6b4a00; padding:10px 14px; border-radius:8px; margin:8px 0; font-size:14px; }
+pre.log { background:#1d1d1b; color:#e8e8e3; padding:14px; border-radius:8px; overflow-x:auto; font-size:13px; white-space:pre-wrap; }
+iframe.preview { width:100%; height:640px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+@media (max-width:600px) { main { padding:16px; } .stats { grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="{{ url_for('overview') }}">Marketing engine</a>
+  {% for b in businesses.values() %}
+  <a href="{{ url_for('contacts', key=b.key) }}" class="{{ 'on' if biz and biz.key == b.key }}"><span class="dot" style="background:{{ b.brand_color }}"></span>{{ b.name }}</a>
+  {% endfor %}
+  <a href="{{ url_for('activity') }}" class="{{ 'on' if request.endpoint == 'activity' }}">Activity</a>
+</header>
+{% if biz %}
+<nav class="sub">
+  {% for s, label in [('contacts','Contacts'),('templates','Templates'),('campaigns','Campaigns'),('sequences','Sequences')] %}
+  <a href="{{ url_for(s, key=biz.key) }}" class="{{ 'on' if section == s }}">{{ label }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+<main>
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% block body %}{% endblock %}
+</main>
+</body>
+</html>
