@@ -50,8 +50,10 @@ def _mark_replied(conn, business: str, address: str) -> list[str]:
     """Tag the contact 'replied' and return the addresses newly tagged.
 
     Businesses often answer from a person's own address (jess@) rather than
-    the one we wrote to (hello@), so with no exact match, every contact at the
-    same company domain counts. Free-mail domains are never matched this way.
+    the one we wrote to (hello@), so with no exact match, the one contact at
+    the same company domain counts. Free-mail domains are never matched this
+    way, and neither is a domain several contacts share (franchise offices on
+    one domain), since the reply may be about only one of them.
     """
     rows = conn.execute("SELECT id, email, tags FROM contacts WHERE business = ? AND email = ?",
                         (business, address)).fetchall()
@@ -59,6 +61,8 @@ def _mark_replied(conn, business: str, address: str) -> list[str]:
     if not rows and domain and domain not in FREE_MAIL_DOMAINS:
         rows = conn.execute("SELECT id, email, tags FROM contacts WHERE business = ?"
                             " AND lower(email) LIKE ?", (business, f"%@{domain}")).fetchall()
+        if len(rows) > 1:
+            rows = []
     tagged = []
     for row in rows:
         if REPLIED_TAG in db.tag_list(row["tags"]):
