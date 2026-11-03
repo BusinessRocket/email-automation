@@ -47,6 +47,7 @@ class Business:
     review_url: str
     booking_url: str
     daily_limit: int
+    sender_name: str = ""  # who signs the emails, e.g. "Sam"
 
     @property
     def env_prefix(self) -> str:
@@ -74,6 +75,7 @@ class Business:
     def template_vars(self) -> dict[str, str]:
         return {
             "business_name": self.name,
+            "sender_name": self.sender_name or f"The {self.name} team",
             "phone": self.phone,
             "phone_tel": self.phone.replace(" ", ""),
             "website": self.website,

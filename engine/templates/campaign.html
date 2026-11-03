@@ -6,7 +6,7 @@
 <div class="grid">
 <div class="card">
   <p><b>Template:</b> <a href="{{ url_for('template_edit', key=biz.key, tid=row.template_id) }}">{{ row.template_name }}</a><br>
-  <b>Audience:</b> {% if row.tag %}subscribed contacts tagged <span class="tag">{{ row.tag }}</span>{% else %}every subscribed contact{% endif %}<br>
+  <b>Audience:</b> {% if row.tag %}subscribed contacts tagged <span class="tag">{{ row.tag }}</span>{% else %}every subscribed contact{% endif %}{% if row.skip_tag %}, except those tagged <span class="tag">{{ row.skip_tag }}</span>{% endif %}<br>
   <b>Still to send:</b> {{ pending|length }}<br>
   <b>Daily allowance left:</b> {{ remaining_today }} of {{ biz.daily_limit }}</p>
   {% if pending|length > remaining_today %}<div class="warn">There are more recipients than today's allowance. The first {{ remaining_today }} go now; send again tomorrow to continue. Nobody gets it twice.</div>{% endif %}

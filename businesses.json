@@ -10,7 +10,8 @@
     "address": "",
     "review_url": "",
     "booking_url": "",
-    "daily_limit": 400
+    "daily_limit": 400,
+    "sender_name": ""
   },
   {
     "key": "ecoshine",
@@ -23,6 +24,7 @@
     "address": "",
     "review_url": "",
     "booking_url": "",
-    "daily_limit": 400
+    "daily_limit": 400,
+    "sender_name": ""
   }
 ]

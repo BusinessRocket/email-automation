@@ -6,7 +6,7 @@ first step waits after enrolment). A contact leaves the sequence when they
 unsubscribe, bounce, or gain one of the sequence's exit tags (for example
 'won' on a quote follow-up).
 
-`run_sequences` is meant to run once a day (see daily.bat); it is also safe to
+`run_sequences` is meant to run every 15 minutes (see tick.pyw); it is also safe to
 run more often.
 """
 

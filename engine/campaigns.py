@@ -1,4 +1,5 @@
-"""One-off campaigns: send a template to a business's list (optionally one tag)."""
+"""One-off campaigns: send a template to a business's list, optionally only
+contacts with one tag and without another (e.g. tagged quote, not tagged won)."""
 
 from . import db
 from .config import get_business
@@ -15,6 +16,9 @@ def pending_recipients(conn, campaign) -> list:
     if campaign["tag"]:
         sql += " AND tags LIKE ?"
         params.append(f"%,{campaign['tag']},%")
+    if campaign["skip_tag"]:
+        sql += " AND tags NOT LIKE ?"
+        params.append(f"%,{campaign['skip_tag']},%")
     return conn.execute(sql + " ORDER BY id", params).fetchall()
 
 
@@ -29,6 +33,8 @@ def send_campaign(conn, campaign_id: int, *, dry_run: bool = True, log: Log = pr
                             (campaign["template_id"],)).fetchone()
     recipients = pending_recipients(conn, campaign)
     audience = f"tag '{campaign['tag']}'" if campaign["tag"] else "all subscribed contacts"
+    if campaign["skip_tag"]:
+        audience += f", skipping tag '{campaign['skip_tag']}'"
     log(f"Campaign '{campaign['name']}' ({biz.name}, {audience}): "
         f"{len(recipients)} recipient(s) still to send; dry_run={dry_run}")
 

@@ -29,7 +29,7 @@
 </div>
 <div class="card">
   <strong>Daily run</strong>
-  <p class="muted small">Sequences send when the daily task runs (<code>daily.bat</code>). You can also run them now. A dry run shows what would be sent and changes nothing.</p>
+  <p class="muted small">Sequences send when the scheduled task runs (<code>tick.pyw</code>, every 15 minutes, 8am to 7pm). You can also run them now. A dry run shows what would be sent and changes nothing.</p>
   <div class="row">
     <form class="inline" method="post" action="{{ url_for('run_sequences') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="dry"><button>Run sequences (dry run)</button></form>
     <form class="inline" method="post" action="{{ url_for('run_sequences') }}" onsubmit="return confirm('Send all sequence emails that are due now, from both businesses?')"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="live"><button class="primary">Run sequences (send)</button></form>

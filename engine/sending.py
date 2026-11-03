@@ -49,7 +49,7 @@ class SendRun:
                 step_position=None, after_sent: Callable[[], None] | None = None) -> bool:
         """Send one email. `after_sent` runs inside the same commit as the send record."""
         biz = self.mailer.biz
-        r = render_email(biz, template["subject"], template["body"], contact)
+        r = render_email(biz, template["subject"], template["body"], contact, template["style"])
         to = contact["email"]
         if self.mailer.dry_run:
             self.log(f"DRY RUN [{biz.key}] would send to {to}: {r.subject!r}")

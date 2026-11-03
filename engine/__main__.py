@@ -14,6 +14,11 @@ from .mailer import Mailer, NotConfigured
 from .seed import seed
 
 
+# The scheduled job runs every 15 minutes, day and night. Sequence emails only go
+# out between these hours (this PC's local time); anything due overnight waits.
+SEND_FROM_HOUR, SEND_UNTIL_HOUR = 8, 19
+
+
 def log(msg: str) -> None:
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {msg}", flush=True)
 
@@ -62,6 +67,10 @@ def cmd_campaign(conn, args) -> int:
 def cmd_tick(conn, args) -> int:
     if args.live:
         unsubscribes.sync_all(conn, log=log)
+    if args.live and not args.any_time and not SEND_FROM_HOUR <= datetime.now().hour < SEND_UNTIL_HOUR:
+        log(f"Outside sending hours ({SEND_FROM_HOUR}:00 to {SEND_UNTIL_HOUR}:00); "
+            f"due emails wait for the next run inside them")
+        return 0
     runs = sequences.run_sequences(conn, dry_run=not args.live, log=log)
     return 1 if any(r.failed for r in runs) else 0
 
@@ -91,8 +100,10 @@ def main(argv=None) -> int:
     s = sub.add_parser("campaign", help="send a campaign by id")
     s.add_argument("id", type=int)
     s.add_argument("--live", action="store_true", help="really send (default is a dry run)")
-    s = sub.add_parser("tick", help="daily job: check inboxes, then run sequences")
+    s = sub.add_parser("tick", help="scheduled job: check inboxes, then run sequences")
     s.add_argument("--live", action="store_true", help="really send (default is a dry run)")
+    s.add_argument("--any-time", action="store_true",
+                   help=f"send even outside {SEND_FROM_HOUR}:00 to {SEND_UNTIL_HOUR}:00")
     sub.add_parser("sync-unsubscribes", help="apply unsubscribes and bounces from both inboxes")
     s = sub.add_parser("serve", help="start the dashboard")
     s.add_argument("--port", type=int, default=5050)

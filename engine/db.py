@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS templates (
     name        TEXT NOT NULL,
     subject     TEXT NOT NULL,
     body        TEXT NOT NULL,
+    style       TEXT NOT NULL DEFAULT 'plain' CHECK (style IN ('plain', 'branded')),
     updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (business, name)
 );
@@ -45,6 +46,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
     name        TEXT NOT NULL,
     template_id INTEGER NOT NULL REFERENCES templates(id),
     tag         TEXT NOT NULL DEFAULT '',   -- empty = every subscribed contact
+    skip_tag    TEXT NOT NULL DEFAULT '',   -- contacts with this tag are left out
     status      TEXT NOT NULL DEFAULT 'draft'
                 CHECK (status IN ('draft', 'sending', 'partial', 'sent')),
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
@@ -113,7 +115,22 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA busy_timeout = 10000")
     conn.execute("PRAGMA journal_mode = WAL")  # dashboard and background sends share the file
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Bring databases created by older versions up to the current schema."""
+    added = {
+        "templates": ("style", "TEXT NOT NULL DEFAULT 'plain'"
+                               " CHECK (style IN ('plain', 'branded'))"),
+        "campaigns": ("skip_tag", "TEXT NOT NULL DEFAULT ''"),
+    }
+    for table, (column, definition) in added.items():
+        columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+    conn.commit()
 
 
 def now() -> str:

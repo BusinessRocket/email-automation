@@ -1,10 +1,16 @@
-"""Turn a template into a branded HTML email plus a plain-text version.
+"""Turn a template into an HTML email plus a plain-text version.
 
 Template bodies are plain text with a few extras:
   {first_name}, {name}, {suburb}, {business_name}, {booking_url} ...  placeholders
   blank line                 new paragraph
   **bold**                   bold text
-  [[Button label|https://...]]  a button (dropped if the link is empty)
+  [[Button label|https://...]]  a link or button (dropped if the link is empty)
+
+Two styles:
+  plain    looks like an email typed in Gmail: no banner, links instead of
+           buttons. Gmail tends to put these in the Primary tab.
+  branded  coloured header, buttons and a footer panel. Reads as a newsletter,
+           so Gmail usually files it under Promotions.
 """
 
 import html
@@ -17,6 +23,8 @@ PLACEHOLDER = re.compile(r"\{(\w+)\}")
 BUTTON = re.compile(r"\[\[(.+?)\|(.*?)\]\]")
 BOLD = re.compile(r"\*\*(.+?)\*\*")
 SAFE_URL = re.compile(r"^(https?://|mailto:|tel:)\S+$")
+
+STYLES = ("plain", "branded")
 
 SAMPLE_CONTACT = {"name": "Alex Sample", "email": "alex@example.com",
                   "phone": "0400 000 000", "suburb": "Sampleville"}
@@ -55,12 +63,14 @@ def unsubscribe_href(biz: Business) -> str:
     return f"mailto:{biz.gmail_address}?subject=unsubscribe" if biz.gmail_address else ""
 
 
-def render_email(biz: Business, subject: str, body: str, contact) -> Rendered:
+def render_email(biz: Business, subject: str, body: str, contact,
+                 style: str = "plain") -> Rendered:
     values = {**biz.template_vars(), **contact_vars(contact)}
     unknown: set = set()
     subject = " ".join(fill(subject, values, unknown).split())
     body = fill(body, values, unknown).strip()
-    return Rendered(subject=subject, text=_text(biz, body), html=_html(biz, body),
+    make_html = _branded_html if style == "branded" else _plain_html
+    return Rendered(subject=subject, text=_text(biz, body), html=make_html(biz, body),
                     unknown=sorted(unknown))
 
 
@@ -75,10 +85,8 @@ def _footer_lines(biz: Business) -> list[str]:
 
 
 def _unsubscribe_text(biz: Business) -> str:
-    who = biz.gmail_address or "us"
-    return (f"You're receiving this because you've been in touch with {biz.name}. "
-            f"To stop these emails, reply with \"unsubscribe\" or email {who} "
-            f"with the subject \"unsubscribe\".")
+    return (f"You're getting this because you've been in touch with {biz.name}. "
+            f"If you'd rather not hear from us, just reply \"unsubscribe\".")
 
 
 def _text(biz: Business, body: str) -> str:
@@ -91,23 +99,39 @@ def _text(biz: Business, body: str) -> str:
     return f"{text}\n\n--\n{footer}\n\n{_unsubscribe_text(biz)}\n"
 
 
-def _html(biz: Business, body: str) -> str:
-    color = html.escape(biz.brand_color)
-
-    def button(m):
+def _paragraphs(body: str, link_style: str) -> list[str]:
+    """Escaped HTML for each paragraph, with links and bold filled in."""
+    def link(m):
         label, url = m.group(1).strip(), html.unescape(m.group(2).strip())
         if not SAFE_URL.match(url):
             return ""
-        return (f'<a href="{html.escape(url)}" style="display:inline-block;background:{color};'
-                f'color:#ffffff;padding:12px 22px;border-radius:6px;text-decoration:none;'
-                f'font-weight:bold;">{label}</a>')
+        style = f' style="{link_style}"' if link_style else ""
+        return f'<a href="{html.escape(url)}"{style}>{label}</a>'
 
     paragraphs = []
     for para in re.split(r"\n\s*\n", body):
-        p = BUTTON.sub(button, html.escape(para.strip()))
+        p = BUTTON.sub(link, html.escape(para.strip()))
         p = BOLD.sub(r"<strong>\1</strong>", p).replace("\n", "<br>")
         if p.strip():
-            paragraphs.append(f'<p style="margin:0 0 16px;">{p}</p>')
+            paragraphs.append(p)
+    return paragraphs
+
+
+def _plain_html(biz: Business, body: str) -> str:
+    # Mirrors the markup Gmail itself produces, so the message looks hand-typed.
+    paragraphs = "<br>".join(f"<div>{p}</div>" for p in _paragraphs(body, ""))
+    footer = "<br>".join(html.escape(line) for line in _footer_lines(biz))
+    unsub = html.escape(_unsubscribe_text(biz))
+    return (f'<div dir="ltr">{paragraphs}<br><div>--</div>'
+            f'<div style="color:#555555;">{footer}</div><br>'
+            f'<div style="color:#888888;font-size:12px;">{unsub}</div></div>')
+
+
+def _branded_html(biz: Business, body: str) -> str:
+    color = html.escape(biz.brand_color)
+    button = (f"display:inline-block;background:{color};color:#ffffff;padding:12px 22px;"
+              f"border-radius:6px;text-decoration:none;font-weight:bold;")
+    paragraphs = [f'<p style="margin:0 0 16px;">{p}</p>' for p in _paragraphs(body, button)]
 
     footer = "<br>".join(html.escape(line) for line in _footer_lines(biz))
     unsub = html.escape(_unsubscribe_text(biz))

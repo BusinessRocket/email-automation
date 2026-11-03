@@ -8,10 +8,15 @@
   <input type="hidden" name="csrf" value="{{ csrf_token() }}">
   <div class="field"><label>Name (only you see this)</label><input name="name" value="{{ row.name if row }}" required></div>
   <div class="field"><label>Subject</label><input name="subject" value="{{ row.subject if row }}" required></div>
+  <div class="field"><label>Style</label><select name="style">
+    <option value="plain" {% if not row or row.style != 'branded' %}selected{% endif %}>Plain: looks like a normal email, usually lands in Primary</option>
+    <option value="branded" {% if row and row.style == 'branded' %}selected{% endif %}>Branded: coloured header and buttons, usually lands in Promotions</option>
+  </select></div>
   <div class="field"><label>Body</label><textarea name="body" required>{{ row.body if row }}</textarea></div>
-  <p class="small muted">Placeholders: {first_name} {name} {suburb} {business_name} {phone} {phone_tel} {website} {booking_url} {review_url}<br>
-  Leave a blank line between paragraphs. <code>**bold**</code> for bold. <code>[[Button text|https://link]]</code> for a button. Buttons with an empty link are left out.<br>
-  The branded header, your business details and the unsubscribe line are added automatically.</p>
+  <p class="small muted">Placeholders: {first_name} {name} {suburb} {business_name} {sender_name} {phone} {phone_tel} {website} {booking_url} {review_url}<br>
+  Leave a blank line between paragraphs. <code>**bold**</code> for bold. <code>[[Link text|https://link]]</code> for a link (a button in the branded style). Links with an empty address are left out.<br>
+  Your business details and the unsubscribe line are added automatically.<br>
+  To reach the inbox: keep it short, one idea and one link, ask for a reply, and end with a P.S.</p>
   <button class="primary">Save</button>
 </form>
 <div>
@@ -22,7 +27,8 @@
   <iframe class="preview" src="{{ url_for('template_preview', key=biz.key, tid=row.id) }}"></iframe>
   <form class="card row" method="post" action="{{ url_for('template_test', key=biz.key, tid=row.id) }}" style="margin-top:12px">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <span class="small">Send a test of the saved version to</span><input name="to" type="email" placeholder="you@example.com" required><button>Send test</button>
+    <span class="small">Send a test of the saved version to</span><input name="to" placeholder="you@gmail.com, you@outlook.com" required style="flex:1"><button>Send test</button>
+    <span class="small muted">Up to 5 addresses. Use a Gmail, an Outlook and an iCloud address, plus the one shown at mail-tester.com for a spam score, to see where it lands.</span>
   </form>
   {% endif %}
   {% else %}<div class="card muted">Save the template to see a preview.</div>{% endif %}

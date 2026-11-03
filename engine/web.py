@@ -1,5 +1,6 @@
 """Local dashboard. Start with `python -m engine serve`; it listens on 127.0.0.1 only."""
 
+import re
 import secrets
 import threading
 import uuid
@@ -12,9 +13,11 @@ from . import contacts as contacts_mod
 from . import db, sequences as sequences_mod, unsubscribes
 from .config import BUSINESSES, DATA_DIR
 from .mailer import Mailer, NotConfigured
-from .render import SAMPLE_CONTACT, render_email
+from .render import SAMPLE_CONTACT, STYLES, render_email
 from .seed import seed
 from .sending import sent_last_24h
+
+MAX_TEST_ADDRESSES = 5
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
@@ -271,25 +274,31 @@ def template_edit(key, tid=None):
         name = request.form.get("name", "").strip()
         subject = request.form.get("subject", "").strip()
         body = request.form.get("body", "").replace("\r\n", "\n").strip()
+        style = request.form.get("style", "plain")
+        if style not in STYLES:
+            style = "plain"
         if not (name and subject and body):
             flash("Name, subject and body are all required.", "error")
         else:
             c = conn()
             try:
                 if row:
-                    c.execute("UPDATE templates SET name = ?, subject = ?, body = ?, updated_at = ?"
-                              " WHERE id = ?", (name, subject, body, db.now(), tid))
+                    c.execute("UPDATE templates SET name = ?, subject = ?, body = ?, style = ?,"
+                              " updated_at = ? WHERE id = ?",
+                              (name, subject, body, style, db.now(), tid))
                 else:
-                    tid = c.execute("INSERT INTO templates (business, name, subject, body)"
-                                    " VALUES (?, ?, ?, ?)", (key, name, subject, body)).lastrowid
+                    tid = c.execute("INSERT INTO templates (business, name, subject, body, style)"
+                                    " VALUES (?, ?, ?, ?, ?)",
+                                    (key, name, subject, body, style)).lastrowid
                 c.commit()
             except db.sqlite3.IntegrityError:
                 flash(f"There is already a template called '{name}'.", "error")
             else:
                 flash("Template saved.", "ok")
                 return redirect(url_for("template_edit", key=key, tid=tid))
-        row = {"id": tid, "name": name, "subject": subject, "body": body}
-    preview = render_email(biz, row["subject"], row["body"], SAMPLE_CONTACT) if row else None
+        row = {"id": tid, "name": name, "subject": subject, "body": body, "style": style}
+    preview = (render_email(biz, row["subject"], row["body"], SAMPLE_CONTACT, row["style"])
+               if row else None)
     return render_template("template_edit.html", biz=biz, section="templates", row=row,
                            preview=preview)
 
@@ -298,23 +307,25 @@ def template_edit(key, tid=None):
 def template_preview(key, tid):
     biz = business(key)
     row = one("SELECT * FROM templates WHERE id = ? AND business = ?", tid, key)
-    return render_email(biz, row["subject"], row["body"], SAMPLE_CONTACT).html
+    return render_email(biz, row["subject"], row["body"], SAMPLE_CONTACT, row["style"]).html
 
 
 @app.post("/b/<key>/templates/<int:tid>/test")
 def template_test(key, tid):
     biz = business(key)
     row = one("SELECT * FROM templates WHERE id = ? AND business = ?", tid, key)
-    to = request.form.get("to", "").strip()
-    if not contacts_mod.valid_email(to):
-        flash("Enter a valid address for the test email.", "error")
+    # Several addresses (Gmail, Outlook, iCloud, mail-tester.com) show where an email lands.
+    to = [a for a in re.split(r"[\s,;]+", request.form.get("to", "")) if a]
+    if not to or len(to) > MAX_TEST_ADDRESSES or not all(map(contacts_mod.valid_email, to)):
+        flash(f"Enter 1 to {MAX_TEST_ADDRESSES} valid addresses, separated by commas.", "error")
     else:
         try:
-            r = render_email(biz, row["subject"], row["body"], SAMPLE_CONTACT)
-            r.subject = f"[TEST] {r.subject}"
+            # No "[TEST]" subject prefix: it changes how spam filters judge the email.
+            r = render_email(biz, row["subject"], row["body"], SAMPLE_CONTACT, row["style"])
             with Mailer(biz, dry_run=False) as m:
-                m.send(to, r)
-            flash(f"Test email sent to {to} from {biz.gmail_address}.", "ok")
+                for address in to:
+                    m.send(address, r)
+            flash(f"Test email sent to {', '.join(to)} from {biz.gmail_address}.", "ok")
         except Exception as e:
             flash(f"Test send failed: {type(e).__name__}: {e}", "error")
     return redirect(url_for("template_edit", key=key, tid=tid))
@@ -333,9 +344,10 @@ def campaigns(key):
         if not name:
             flash("Give the campaign a name.", "error")
         else:
-            cid = c.execute("INSERT INTO campaigns (business, name, template_id, tag)"
-                            " VALUES (?, ?, ?, ?)",
-                            (key, name, tid, db.clean_tag(request.form.get("tag", "")))).lastrowid
+            cid = c.execute("INSERT INTO campaigns (business, name, template_id, tag, skip_tag)"
+                            " VALUES (?, ?, ?, ?, ?)",
+                            (key, name, tid, db.clean_tag(request.form.get("tag", "")),
+                             db.clean_tag(request.form.get("skip_tag", "")))).lastrowid
             c.commit()
             return redirect(url_for("campaign", key=key, cid=cid))
     rows = c.execute(

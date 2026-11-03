@@ -3,9 +3,9 @@
 {% block body %}
 <div class="row"><h1 style="margin-right:auto">{{ biz.name }} templates</h1><a class="btn" href="{{ url_for('template_edit', key=biz.key) }}">New template</a></div>
 <div class="tablewrap"><table>
-<tr><th>Name</th><th>Subject</th><th>Updated (UTC)</th></tr>
+<tr><th>Name</th><th>Subject</th><th>Style</th><th>Updated (UTC)</th></tr>
 {% for r in rows %}
-<tr><td><a href="{{ url_for('template_edit', key=biz.key, tid=r.id) }}">{{ r.name }}</a></td><td>{{ r.subject }}</td><td class="small muted">{{ r.updated_at }}</td></tr>
+<tr><td><a href="{{ url_for('template_edit', key=biz.key, tid=r.id) }}">{{ r.name }}</a></td><td>{{ r.subject }}</td><td class="small">{{ r.style }}</td><td class="small muted">{{ r.updated_at }}</td></tr>
 {% endfor %}
 </table></div>
 {% endblock %}
