@@ -112,6 +112,35 @@ Cheers,
 {sender_name}
 
 P.S. It takes about 15 minutes, and you don't need to clear anything out first."""),
+        # Follow-ups after a personal first email to a builder (sent by hand or by script).
+        "Outreach follow-up 1": (
+            "quick follow-up",
+            """Hi {first_name},
+
+Just bumping my email from earlier this week in case it got buried.
+
+Have you got a bathroom, kitchen or floor coming up I could quote on? Send me the plans and I'll have an itemised quote back within 48 hours.
+
+Cheers,
+{sender_name}"""),
+        "Outreach follow-up 2": (
+            "one thing that saves rework in wet areas",
+            """Hi {first_name},
+
+One thing worth checking on every wet area: that the waterproofing membrane has fully cured before tiling starts. Tiling too early is a common cause of leaks that show up months later as defect claims.
+
+Happy to quote your next bathroom whenever it suits.
+
+Cheers,
+{sender_name}"""),
+        "Outreach follow-up 3": (
+            "closing the loop",
+            """Hi {first_name},
+
+I won't keep following up after this one. If you ever need a tiler for a bathroom, kitchen or floor, just reply here and I'll get back to you quickly.
+
+Cheers,
+{sender_name}"""),
     },
     "ecoshine": {
         "Welcome": (
@@ -204,6 +233,35 @@ Thanks,
 {sender_name}
 
 P.S. We use eco-friendly products on the oven too, so there are no harsh fumes in your kitchen afterwards."""),
+        # Follow-ups after a personal first email to an agency (sent by hand or by script).
+        "Outreach follow-up 1": (
+            "quick follow-up",
+            """Hi {first_name},
+
+Just bumping my email from earlier this week in case it got buried.
+
+Have you got a vacate or a listing coming up I could quote? Reply with the address and I'll send a fixed price the same day.
+
+Thanks,
+{sender_name}"""),
+        "Outreach follow-up 2": (
+            "two spots inspectors always check",
+            """Hi {first_name},
+
+A quick tip you can pass on to tenants: the oven and the window tracks are two spots that are easy to miss on a vacate clean, and inspectors check both.
+
+Happy to quote your next vacate whenever it suits.
+
+Thanks,
+{sender_name}"""),
+        "Outreach follow-up 3": (
+            "closing the loop",
+            """Hi {first_name},
+
+I won't keep following up after this one. If you ever need a vacate, pre-sale or deep clean, just reply here and I'll sort it.
+
+Thanks,
+{sender_name}"""),
     },
 }
 
@@ -214,12 +272,18 @@ SEQUENCES = {
          [(2, "Quote follow-up 1"), (3, "Quote follow-up 2"), (7, "Quote follow-up 3")]),
         ("After the job", "completed", "",
          [(1, "Job complete: review request"), (30, "Tile care tips")]),
+        # Tag a business 'outreach' on the day its first email goes out. Follow-ups go
+        # on days 3, 7 and 14, and stop as soon as they reply (tagged 'replied' automatically).
+        ("Builder outreach", "outreach", "replied,won",
+         [(3, "Outreach follow-up 1"), (4, "Outreach follow-up 2"), (7, "Outreach follow-up 3")]),
     ],
     "ecoshine": [
         ("New lead", "lead", "customer",
          [(0, "Welcome"), (3, "Lead follow-up")]),
         ("Customer care", "customer", "",
          [(1, "Post-clean review"), (21, "Rebook reminder")]),
+        ("Agency outreach", "outreach", "replied,customer",
+         [(3, "Outreach follow-up 1"), (4, "Outreach follow-up 2"), (7, "Outreach follow-up 3")]),
     ],
 }
 

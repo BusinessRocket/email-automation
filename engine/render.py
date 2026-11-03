@@ -85,8 +85,7 @@ def _footer_lines(biz: Business) -> list[str]:
 
 
 def _unsubscribe_text(biz: Business) -> str:
-    return (f"You're getting this because you've been in touch with {biz.name}. "
-            f"If you'd rather not hear from us, just reply \"unsubscribe\".")
+    return f"If you'd rather not hear from {biz.name}, just reply \"unsubscribe\"."
 
 
 def _text(biz: Business, body: str) -> str:
