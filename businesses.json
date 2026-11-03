@@ -5,13 +5,13 @@
     "from_name": "Capital Tile Studio",
     "brand_color": "#1f4e79",
     "tagline": "Tiling for bathrooms, kitchens and floors",
-    "phone": "",
-    "website": "",
+    "phone": "+61 435 151 933",
+    "website": "https://capitaltilestudio.com.au/",
     "address": "",
     "review_url": "",
-    "booking_url": "",
+    "booking_url": "https://capitaltilestudio.com.au/contact/#quote",
     "daily_limit": 400,
-    "sender_name": ""
+    "sender_name": "Thinley"
   },
   {
     "key": "ecoshine",
@@ -19,12 +19,12 @@
     "from_name": "EcoShine Cleaning",
     "brand_color": "#2e7d4f",
     "tagline": "Eco-friendly home cleaning",
-    "phone": "",
-    "website": "",
+    "phone": "+61 435 151 933",
+    "website": "https://eco-shine-cleaning.com/",
     "address": "",
     "review_url": "",
-    "booking_url": "",
+    "booking_url": "https://eco-shine-cleaning.com/quote",
     "daily_limit": 400,
-    "sender_name": ""
+    "sender_name": "Thinley"
   }
 ]
