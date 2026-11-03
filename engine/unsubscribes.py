@@ -9,9 +9,9 @@ X-Failed-Recipients header.
 Only the subject is searched: replies quote our footer, so searching the body
 would unsubscribe anyone who simply replied.
 
-Any other email from a known contact counts as a reply and tags them
-'replied', which stops their follow-ups (sequences exit on that tag) so a
-person can answer them. Out-of-office and other automatic replies are ignored.
+Any other email from a known contact, or from a colleague at the same company
+domain, counts as a reply and tags them 'replied', which stops their follow-ups (sequences exit on that tag) so a
+person can answer them. Replies are looked for in Spam as well as the inbox. Out-of-office and other automatic replies are ignored.
 """
 
 import email
@@ -25,9 +25,14 @@ from .contacts import set_status
 from .sending import Log
 
 IMAP_HOST = "imap.gmail.com"
+REPLY_FOLDERS = ("INBOX", '"[Gmail]/Spam"')
 REPLIED_TAG = "replied"
 AUTO_REPLY_SUBJECTS = ("automatic reply", "auto reply", "autoreply", "auto:", "out of office",
                        "away from", "on leave")
+FREE_MAIL_DOMAINS = {"gmail.com", "googlemail.com", "hotmail.com", "outlook.com", "live.com",
+                     "live.com.au", "yahoo.com", "yahoo.com.au", "icloud.com", "me.com",
+                     "bigpond.com", "bigpond.net.au", "optusnet.com.au", "proton.me",
+                     "protonmail.com", "aol.com"}
 
 
 def _is_auto_reply(msg) -> bool:
@@ -41,27 +46,45 @@ def _is_auto_reply(msg) -> bool:
     return any(subject.startswith(s) or s in subject[:40] for s in AUTO_REPLY_SUBJECTS)
 
 
-def _mark_replied(conn, business: str, address: str) -> bool:
-    """Tag a known contact 'replied'. Returns True if the tag was new."""
-    row = conn.execute("SELECT id, tags FROM contacts WHERE business = ? AND email = ?",
-                       (business, address)).fetchone()
-    if row is None or REPLIED_TAG in db.tag_list(row["tags"]):
-        return False
-    conn.execute("UPDATE contacts SET tags = ?, updated_at = ? WHERE id = ?",
-                 (db.store_tags(db.tag_list(row["tags"]) + [REPLIED_TAG]), db.now(), row["id"]))
-    return True
+def _mark_replied(conn, business: str, address: str) -> list[str]:
+    """Tag the contact 'replied' and return the addresses newly tagged.
+
+    Businesses often answer from a person's own address (jess@) rather than
+    the one we wrote to (hello@), so with no exact match, every contact at the
+    same company domain counts. Free-mail domains are never matched this way.
+    """
+    rows = conn.execute("SELECT id, email, tags FROM contacts WHERE business = ? AND email = ?",
+                        (business, address)).fetchall()
+    domain = address.rpartition("@")[2]
+    if not rows and domain and domain not in FREE_MAIL_DOMAINS:
+        rows = conn.execute("SELECT id, email, tags FROM contacts WHERE business = ?"
+                            " AND lower(email) LIKE ?", (business, f"%@{domain}")).fetchall()
+    tagged = []
+    for row in rows:
+        if REPLIED_TAG in db.tag_list(row["tags"]):
+            continue
+        conn.execute("UPDATE contacts SET tags = ?, updated_at = ? WHERE id = ?",
+                     (db.store_tags(db.tag_list(row["tags"]) + [REPLIED_TAG]), db.now(), row["id"]))
+        tagged.append(row["email"])
+    return tagged
 
 
 def _messages(imap, query: str, fields: str) -> list:
-    """Header-only messages matching an IMAP search; nothing is marked as read."""
+    """Header-only messages matching an IMAP search; nothing is marked as read.
+
+    Headers are fetched in batches, since one request per message takes about
+    a minute for a month of mail.
+    """
     typ, data = imap.search(None, query)
     if typ != "OK" or not data or not data[0]:
         return []
+    nums = data[0].split()
     found = []
-    for num in data[0].split():
-        typ, parts = imap.fetch(num, f"(BODY.PEEK[HEADER.FIELDS ({fields})])")
-        if typ == "OK" and parts and isinstance(parts[0], tuple):
-            found.append(email.message_from_bytes(parts[0][1]))
+    for i in range(0, len(nums), 200):
+        typ, parts = imap.fetch(b",".join(nums[i:i + 200]),
+                                f"(BODY.PEEK[HEADER.FIELDS ({fields})])")
+        if typ == "OK":
+            found += [email.message_from_bytes(p[1]) for p in parts if isinstance(p, tuple)]
     return found
 
 
@@ -87,14 +110,21 @@ def sync_business(conn, biz: Business, *, days: int = 30, log: Log = print) -> t
                     log(f"BOUNCED [{biz.key}] {addr}")
                     bounced += 1
         replied = 0
-        for msg in _messages(imap, f"(SINCE {since})",
-                             "FROM SUBJECT AUTO-SUBMITTED PRECEDENCE X-AUTOREPLY X-AUTORESPOND"):
-            addr = parseaddr(msg.get("From", ""))[1].lower()
-            if not addr or "mailer-daemon" in addr or _is_auto_reply(msg):
+        # A first reply to a cold email sometimes lands in Spam, so look there too.
+        for folder in REPLY_FOLDERS:
+            if folder != "INBOX" and imap.select(folder, readonly=True)[0] != "OK":
                 continue
-            if _mark_replied(conn, biz.key, addr):
-                log(f"REPLIED [{biz.key}] {addr}: follow-ups stopped; answer them yourself")
-                replied += 1
+            for msg in _messages(imap, f"(SINCE {since})",
+                                 "FROM SUBJECT AUTO-SUBMITTED PRECEDENCE X-AUTOREPLY X-AUTORESPOND"):
+                addr = parseaddr(msg.get("From", ""))[1].lower()
+                if not addr or "mailer-daemon" in addr or _is_auto_reply(msg):
+                    continue
+                where = "" if folder == "INBOX" else ", found in Spam"
+                for contact in _mark_replied(conn, biz.key, addr):
+                    via = "" if contact.lower() == addr else f" (replied from {addr})"
+                    log(f"REPLIED [{biz.key}] {contact}{via}{where}: follow-ups stopped;"
+                        " answer them yourself")
+                    replied += 1
         conn.commit()
         return unsub, bounced, replied
     finally:

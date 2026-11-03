@@ -1,6 +1,0 @@
-Hi {name},
-
-This is your daily update. Edit template/body.txt to change this message.
-Any column from the recipients CSV can be used as a placeholder, like {name}.
-
-Best regards
