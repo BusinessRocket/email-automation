@@ -25,8 +25,10 @@ What it does:
   | Tiling | After the job | `completed` | review request day 1, care tips day 31 | |
   | EcoShine | New lead | `lead` | welcome right away, follow-up day 3 | `customer` |
   | EcoShine | Customer care | `customer` | review request day 1, rebook day 22 | |
-  | Tiling | Builder outreach | `outreach` | day 3, 7, 14 | `replied`, `won` |
-  | EcoShine | Agency outreach | `outreach` | day 3, 7, 14 | `replied`, `customer` |
+  | Tiling | Builder outreach | `outreach` | day 3, 7, 14 (weekdays only) | `replied`, `won` |
+  | EcoShine | Agency outreach | `outreach` | day 3, 7, 14 (weekdays only) | `replied`, `customer` |
+
+  Outreach steps that fall due on a Saturday or Sunday wait until Monday, because few businesses read cold email at the weekend.
 
 - **Unsubscribes, bounces and replies**: every email has a `List-Unsubscribe` header and a "reply unsubscribe" footer. Each run reads both inboxes (and their Spam folders, for replies) over IMAP and marks those senders unsubscribed, and marks bounced addresses too. Any other email from a contact tags them `replied`, which stops their follow-ups. A reply from someone else at the same company counts (jess@ answering an email sent to hello@), except on free-mail domains like gmail.com. Out-of-office replies are ignored.
 - **Safety**: everything is a dry run unless you choose to send. Each business has its own daily cap (`daily_limit`, 400 by default; free Gmail allows about 500 a day and Google Workspace about 2,000). A run stops after 5 failures in a row.

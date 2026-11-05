@@ -117,7 +117,7 @@ P.S. It takes about 15 minutes, and you don't need to clear anything out first."
             "quick follow-up",
             """Hi {first_name},
 
-Just bumping my email from earlier this week in case it got buried.
+Just bumping my email from a few days ago in case it got buried.
 
 Have you got a bathroom, kitchen or floor coming up I could quote on? Send me the plans and I'll have an itemised quote back within 48 hours.
 
@@ -238,7 +238,7 @@ P.S. We use eco-friendly products on the oven too, so there are no harsh fumes i
             "quick follow-up",
             """Hi {first_name},
 
-Just bumping my email from earlier this week in case it got buried.
+Just bumping my email from a few days ago in case it got buried.
 
 Have you got a vacate or a listing coming up I could quote? Reply with the address and I'll send a fixed price the same day.
 

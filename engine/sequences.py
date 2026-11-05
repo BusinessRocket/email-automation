@@ -7,13 +7,19 @@ unsubscribe, bounce, or gain one of the sequence's exit tags (for example
 'won' on a quote follow-up).
 
 `run_sequences` is meant to run every 15 minutes (see tick.pyw); it is also safe to
-run more often.
+run more often. Steps of business outreach sequences that fall due at the weekend
+wait until Monday.
 """
+
+from datetime import datetime
 
 from . import db
 from .config import BUSINESSES
 from .mailer import Mailer, NotConfigured
 from .sending import Log, SendRun
+
+# Emails to businesses wait for a weekday: few people read cold email at the weekend.
+WEEKDAY_ONLY_TRIGGERS = {"outreach"}
 
 
 def _step_at_or_after(conn, sequence_id: int, position: int):
@@ -66,11 +72,14 @@ def stop_exited(conn, log: Log) -> int:
 
 
 def due(conn, business: str) -> list:
-    return conn.execute(
-        "SELECT e.*, s.name AS sequence_name FROM enrollments e"
+    rows = conn.execute(
+        "SELECT e.*, s.name AS sequence_name, s.trigger_tag FROM enrollments e"
         " JOIN sequences s ON s.id = e.sequence_id"
         " WHERE e.status = 'active' AND s.active = 1 AND s.business = ? AND e.next_due_at <= ?"
         " ORDER BY e.next_due_at", (business, db.now())).fetchall()
+    if datetime.now().weekday() >= 5:  # Saturday or Sunday on this PC's clock
+        rows = [r for r in rows if r["trigger_tag"] not in WEEKDAY_ONLY_TRIGGERS]
+    return rows
 
 
 def run_sequences(conn, *, dry_run: bool = True, log: Log = print,
