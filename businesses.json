@@ -10,7 +10,7 @@
     "address": "",
     "review_url": "",
     "booking_url": "https://capitaltilestudio.com.au/contact/#quote",
-    "daily_limit": 400,
+    "daily_limit": 20,
     "sender_name": "Thinley"
   },
   {
@@ -24,7 +24,7 @@
     "address": "",
     "review_url": "",
     "booking_url": "https://eco-shine-cleaning.com/quote",
-    "daily_limit": 400,
+    "daily_limit": 20,
     "sender_name": "Thinley"
   }
 ]

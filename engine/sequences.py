@@ -109,6 +109,9 @@ def run_sequences(conn, *, dry_run: bool = True, log: Log = print,
                 log(run.summary())
         except NotConfigured as e:
             log(f"SKIPPED [{key}] {len(pending)} due email(s): {e}")
+        except OSError as e:  # no internet or Gmail unreachable; covers smtplib errors too
+            log(f"FAILED [{key}] could not reach Gmail ({type(e).__name__}: {e});"
+                f" {len(pending)} due email(s) wait for the next run")
     if dry_run:
         conn.rollback()
     return runs
